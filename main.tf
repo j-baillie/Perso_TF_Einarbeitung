@@ -4,6 +4,7 @@ provider "aws" {
   secret_key = "???????"
   # with this, terraform knows that we are 'going into' AWS. It already has the API's installed so knows how to call into AWS, using the login credentials we have given it
   # that being the region, access_key and secret_key
+  # for security, these details will be omitted upon saving to github
 }
 # resource is tf snytax // "aws_instance" points to the specific object in the provider we want to call // JonUbuntuEc2 is purely
 # a name label, which we can refer back to further down in the tf code
