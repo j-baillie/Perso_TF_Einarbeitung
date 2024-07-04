@@ -1,5 +1,5 @@
 /*
-The following example describes a simple network topology for Amazon Web Services, just to give a sense of the overall structure and syntax of the Terraform language. 
+The following example describes a simple network topology for Amazon Web Services, just to give a sense of the overall structure and syntax of the Terraform language.
  */
 
 terraform {
@@ -24,7 +24,7 @@ variable "availability_zones" {
 }
 /*
 provider "aws" {
-  region = var.aws_region ## already declared under main.tf
+  region = var.aws_region ## already declared under main.tf - disabled here to avoid syntax errors
 }
 */
 resource "aws_vpc" "main" {
