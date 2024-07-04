@@ -1,3 +1,7 @@
+/*
+The following example describes a simple network topology for Amazon Web Services, just to give a sense of the overall structure and syntax of the Terraform language. 
+ */
+
 terraform {
   required_providers {
     aws = {
