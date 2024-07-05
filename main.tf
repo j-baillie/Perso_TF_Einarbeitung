@@ -130,7 +130,7 @@ resource "aws_route53_record" "AutoUbuntusDNS" {
   type    = "A"
   zone_id = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
   ttl     = 30
-  records = local.AutoUbuntusips
+  records = local.AutoUbuntusips # equates to "Value/Route traffic to" in the AWS Panel
   #records = [aws_instance.AutoUbuntus.public_ip]
   #records = {for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip} # returns a map
 }
