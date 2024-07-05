@@ -13,18 +13,19 @@ data "aws_region" "current" {}
 
 locals {
   awsRegion = data.aws_region.current.name
-  kurz = "BJO"
+  kurz      = "BJO"
+  AutoUbuntusips = [for serverInstance in aws_instance.AutoUbuntus : serverInstance.public_ip]
   # list of declaration of variables that we can re-use elsewhere for ease.
   # locals are variables that contain just one element
 }
 
 terraform {
   backend "s3" {
-    bucket         = "dev-terraform-remote-state-wkltt9"
-    key            = "jon.state"
-    region         = "eu-central-1"
-//    dynamodb_table = "jon"
-    encrypt        = true
+    bucket  = "dev-terraform-remote-state-wkltt9"
+    key     = "jon.state"
+    region = "eu-central-1"
+    //    dynamodb_table = "jon"
+    encrypt = true
   }
 }
 
@@ -99,15 +100,43 @@ resource "aws_security_group" "allow_ssh" {
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
   security_group_id = aws_security_group.allow_ssh.id
   #cidr_ipv4         = data.terraform_remote_state.AWSNetworkState.outputs.vpc_cidr_block
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-  cidr_ipv4         = "0.0.0.0/0"
+  from_port   = 22
+  ip_protocol = "tcp"
+  to_port     = 22
+  cidr_ipv4   = "0.0.0.0/0"
   tags = {
     Name = "allow_ssh_ipv4_inbound"
   }
 }
+resource "aws_instance" "AutoUbuntus" {
+  for_each                    = toset(data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets)
+  ami                         = "ami-0e872aee57663ae2d"
+  instance_type               = "t2.micro"
+  subnet_id                   = each.key
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  key_name                    = aws_key_pair.jonpubkey.key_name
+  tags = {
+    Name        = "${local.kurz}-UbuntuServer-for_each-${each.key}"
+    description = "Jon Baillie for_each example"
+    Owner       = "Jon Baillie"
+    info        = "EinarbeitungsPlayRoom"
+  }
 
+}
+
+resource "aws_route53_record" "AutoUbuntusDNS" {
+  name    = "Jon-Ubuntu-CL"
+  type    = "A"
+  zone_id = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
+  ttl     = 30
+  records = local.AutoUbuntusips
+  #records = [aws_instance.AutoUbuntus.public_ip]
+  #records = {for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip} # returns a map
+}
+
+
+/*
 resource "aws_instance" "JonUbuntuEc2" {
   ami = "ami-0e872aee57663ae2d" # can be found in the ami catalogue "AMI Catalog" - Ubuntu Server 24.04 LTS
   instance_type = "t2.micro"
@@ -125,22 +154,7 @@ resource "aws_instance" "JonUbuntuEc2" {
   # tags can be custom, many however are standardised
 }
 
-resource "aws_instance" "AutoUbuntus" {
-  for_each = toset(data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets)
-  ami = "ami-0e872aee57663ae2d"
-  instance_type = "t2.micro"
-  subnet_id = each.key
-  associate_public_ip_address = true
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-  key_name = aws_key_pair.jonpubkey.key_name
-  tags = {
-    Name = "${local.kurz}-UbuntuServer-${each.key}"
-    description = "Jon Baillie for_each example"
-    Owner = "Jon Baillie"
-    info = "EinarbeitungsPlayRoom"
-  }
 
-}
 
 resource "aws_instance" "CountUbuntus" {
   count = 2
@@ -157,25 +171,33 @@ resource "aws_instance" "CountUbuntus" {
     info = "Einarbeitungsplayroom"
   }
 }
-
+*/
 
 
 
 resource "aws_key_pair" "jonpubkey" {
-  key_name = "consistrechnerjbENGERLAND"
+  key_name   = "consistrechnerjbENGERLAND"
   public_key = file("${path.cwd}/id_ed25519.pub")
 }
 
 
-
-
-output "vpc_public_subnet_ids" { # "vpc_public_subnet_ids" is literally just a name. We are just naming the label for easy identification
+output "vpc_public_subnet_ids" {
+  # "vpc_public_subnet_ids" is literally just a name. We are just naming the label for easy identification
   value = data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets
   # The value is - DATASOURCE.datasourcestype.datasourcename.wewantanOUTput.theOutputwewant
   # Datasource is "go query something, the information i need is tied up in the following container/element/resource/item declared
 }
 
+output "UbuntuIps" {
+  value = local.AutoUbuntusips
 
+}
+
+output "UbuntuDNSName" {
+  value = aws_route53_record.AutoUbuntusDNS.fqdn
+}
+
+/*
 #print into the console the public ip of statically created instance
 output "Z_JonManPubIP" {
   value = aws_instance.JonUbuntuEc2.public_ip
@@ -185,10 +207,12 @@ output "Z_JonManPubIP" {
 output "Z_JonCountPubIP" {
   value = { for k, instance in aws_instance.CountUbuntus : k => instance.public_ip } # for every instance, pull the information public_ip to k. print k
 }
+*/
 
 #print into the console the public ips of the servers created with for_each
 output "Z_JonForEachPubIP" {
-  value = { for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip } # for every instance, pull the information public_ip to k. print k
+  value = {for k, server_Instance in aws_instance.AutoUbuntus : k => server_Instance.public_ip}
+  # for every instance, pull the information public_ip to k. print k
   #value = aws_instance.AutoUbuntus.public_ip
 }
 
