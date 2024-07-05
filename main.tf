@@ -53,6 +53,13 @@ variable "AWSNetworkState" {
   default     = "network"
 }
 
+/*
+variable "public_subnet_ids" {
+  description = "List of the available public subnet ID's."
+  type = list(string)
+}
+*/
+
 data "terraform_remote_state" "AWSAccountSetup" {
   backend   = "s3"
   workspace = "dev"
@@ -109,7 +116,7 @@ resource "aws_instance" "JonUbuntuEc2" {
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name = aws_key_pair.jonpubkey.key_name
   tags = {
-    Name        = "${local.kurz}-UbuntuServer1"
+    Name        = "${local.kurz}-UbuntuServer-Man"
     description = "Jon Baillie Ubuntu Server. Per Terraform deployed."
     Owner = "Jon Baillie"
     info = "EinarbeitungsPlayRoom"
@@ -117,6 +124,42 @@ resource "aws_instance" "JonUbuntuEc2" {
   # then we can specify further details
   # tags can be custom, many however are standardised
 }
+
+resource "aws_instance" "AutoUbuntus" {
+  for_each = toset(data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets)
+  ami = "ami-0e872aee57663ae2d"
+  instance_type = "t2.micro"
+  subnet_id = each.key
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  key_name = aws_key_pair.jonpubkey.key_name
+  tags = {
+    Name = "${local.kurz}-UbuntuServer-${each.key}"
+    description = "Jon Baillie for_each example"
+    Owner = "Jon Baillie"
+    info = "EinarbeitungsPlayRoom"
+  }
+
+}
+
+resource "aws_instance" "CountUbuntus" {
+  count = 2
+  ami = "ami-0e872aee57663ae2d"
+  instance_type = "t2.micro"
+  subnet_id = element(data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets, 1)
+  associate_public_ip_address = true
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  key_name = aws_key_pair.jonpubkey.key_name
+  tags = {
+    Name = "${local.kurz}-UbuntuServer-Count-${count.index}"
+    description = "Jon Baillie count example"
+    Owner = "Jon Baillie"
+    info = "Einarbeitungsplayroom"
+  }
+}
+
+
+
 
 resource "aws_key_pair" "jonpubkey" {
   key_name = "consistrechnerjbENGERLAND"
@@ -129,9 +172,23 @@ resource "aws_key_pair" "jonpubkey" {
 output "vpc_public_subnet_ids" { # "vpc_public_subnet_ids" is literally just a name. We are just naming the label for easy identification
   value = data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets
   # The value is - DATASOURCE.datasourcestype.datasourcename.wewantanOUTput.theOutputwewant
-  # Datasource is "go query something, the information i need to tied up in the following container/element/resource/item delcared
+  # Datasource is "go query something, the information i need is tied up in the following container/element/resource/item declared
 }
 
-output "JonUbuntuEc2PubIP" {
+
+#print into the console the public ip of statically created instance
+output "Z_JonManPubIP" {
   value = aws_instance.JonUbuntuEc2.public_ip
 }
+
+#print into the console the public ips of the servers created with count meta
+output "Z_JonCountPubIP" {
+  value = { for k, instance in aws_instance.CountUbuntus : k => instance.public_ip } # for every instance, pull the information public_ip to k. print k
+}
+
+#print into the console the public ips of the servers created with for_each
+output "Z_JonForEachPubIP" {
+  value = { for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip } # for every instance, pull the information public_ip to k. print k
+  #value = aws_instance.AutoUbuntus.public_ip
+}
+
