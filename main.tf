@@ -14,6 +14,7 @@ data "aws_region" "current" {}
 locals {
   awsRegion      = data.aws_region.current.name
   kurz           = "BJO"
+  PubKeyName     = "Public_key"
   AutoUbuntusips = [for serverInstance in aws_instance.AutoUbuntus : serverInstance.public_ip]
   # list of declaration of variables that we can re-use elsewhere for ease.
   # locals are variables that contain just one element
@@ -53,6 +54,7 @@ variable "AWSNetworkState" {
   description = "Name of the network state file / dynamo db table"
   default     = "network"
 }
+
 
 /*
 variable "public_subnet_ids" {
@@ -136,8 +138,8 @@ resource "aws_instance" "AutoUbuntus" {
   instance_type               = "t2.micro"
   subnet_id                   = each.key
   associate_public_ip_address = true
-  vpc_security_group_ids = [aws_security_group.allowed_traffic.id]
-  key_name                    = aws_key_pair.jonpubkey.key_name
+  vpc_security_group_ids      = [aws_security_group.allowed_traffic.id]
+  key_name                    = local.PubKeyName
   user_data                   = "${file("./install_apache.sh")}"
 
   tags = {
@@ -196,12 +198,18 @@ resource "aws_instance" "CountUbuntus" {
 }
 */ # disabled extra ec2 instances
 
+# TODO: move to module
+#resource "aws_key_pair" "jonpubkey" {
+#  key_name   = "consistrechnerjbENGERLAND"
+#  public_key = file("${path.cwd}/id_ed25519.pub")
+#}
 
-resource "aws_key_pair" "jonpubkey" {
-  key_name   = "consistrechnerjbENGERLAND"
-  public_key = file("${path.cwd}/id_ed25519.pub")
+module "awskeydeploy" {
+  # here i am loading the module.
+  # when calling, i want to overwrite this VARIABLE of the MODULE with this data
+  source = "./aws_key_pair"
+  jobpubkeypath = file("${path.cwd}/id_ed25519.pub")
 }
-
 
 /*
 #print into the console the public ip of statically created instance
