@@ -12,12 +12,18 @@ provider "aws" {
 data "aws_region" "current" {}
 
 locals {
-  awsRegion = data.aws_region.current.name
-  kurz      = "BJO"
+  awsRegion      = data.aws_region.current.name
+  kurz           = "BJO"
   AutoUbuntusips = [for serverInstance in aws_instance.AutoUbuntus : serverInstance.public_ip]
   # list of declaration of variables that we can re-use elsewhere for ease.
   # locals are variables that contain just one element
 }
+
+/*
+A Local. is only accessible within the local module vs a Terraform variable., which can be scoped globally.
+Another thing to note is that a local in Terraform doesn’t change its value once assigned. A variable value can be manipulated via expressions
+https://spacelift.io/blog/terraform-locals
+*/
 
 terraform {
   backend "s3" {
@@ -28,12 +34,6 @@ terraform {
     encrypt = true
   }
 }
-
-/*
-A Local. is only accessible within the local module vs a Terraform variable., which can be scoped globally.
-Another thing to note is that a local in Terraform doesn’t change its value once assigned. A variable value can be manipulated via expressions
-https://spacelift.io/blog/terraform-locals
-*/
 
 # variable in this case means an input variable - we are inputting a variable that contains many elements that can be referenced globally.
 variable "TerraformRemoteStateBucket" {
@@ -87,35 +87,59 @@ data "terraform_remote_state" "AWSNetworkState" {
   value = data.terraform_remote_state.AWSNetworkState.outputs
 }*/
 
-resource "aws_security_group" "allow_ssh" {
-  name        = "${local.kurz}-allow_ssh"
-  description = "Allow ssh inbound traffic and all outbound traffic"
+resource "aws_security_group" "allowed_traffic" {
+  name        = "${local.kurz}-allowed_traffic_in"
+  description = "Allow inbound traffic and all outbound traffic"
   vpc_id      = data.terraform_remote_state.AWSNetworkState.outputs.vpc_id
 
   tags = {
-    Name = "${local.kurz}-allow_ssh"
+    Name = "${local.kurz}-allowed_traffic_in"
   }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ipv4" {
-  security_group_id = aws_security_group.allow_ssh.id
+  security_group_id = aws_security_group.allowed_traffic.id
   #cidr_ipv4         = data.terraform_remote_state.AWSNetworkState.outputs.vpc_cidr_block
   from_port   = 22
   ip_protocol = "tcp"
   to_port     = 22
   cidr_ipv4   = "0.0.0.0/0"
   tags = {
-    Name = "allow_ssh_ipv4_inbound"
+    Name = "${local.kurz}-allow_ssh_ipv4_inbound"
   }
 }
+
+resource "aws_vpc_security_group_ingress_rule" "allow_http_in" {
+  security_group_id = aws_security_group.allowed_traffic.id
+  #cidr_ipv4         = data.terraform_remote_state.AWSNetworkState.outputs.vpc_cidr_block
+  from_port   = 80
+  ip_protocol = "tcp"
+  to_port     = 80
+  cidr_ipv4   = "0.0.0.0/0"
+  tags = {
+    Name = "${local.kurz}-allow_http_inbound"
+  }
+}
+
+resource "aws_vpc_security_group_egress_rule" "allow_all_out" {
+  security_group_id = aws_security_group.allowed_traffic.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+  tags = {
+    Name = "${local.kurz}-allow_all_outbound"
+  }
+}
+
 resource "aws_instance" "AutoUbuntus" {
   for_each                    = toset(data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets)
   ami                         = "ami-0e872aee57663ae2d"
   instance_type               = "t2.micro"
   subnet_id                   = each.key
   associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids = [aws_security_group.allowed_traffic.id]
   key_name                    = aws_key_pair.jonpubkey.key_name
+  user_data                   = "${file("./install_apache.sh")}"
+
   tags = {
     Name        = "${local.kurz}-UbuntuServer-for_each-${each.key}"
     description = "Jon Baillie for_each example"
@@ -126,7 +150,7 @@ resource "aws_instance" "AutoUbuntus" {
 }
 
 resource "aws_route53_record" "AutoUbuntusDNS" {
-  name    = "Jon-Ubuntu-CL"
+  name    = "${local.kurz}-Ubuntu-CL"
   type    = "A"
   zone_id = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
   ttl     = 30
@@ -135,8 +159,7 @@ resource "aws_route53_record" "AutoUbuntusDNS" {
   #records = {for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip} # returns a map
 }
 
-
-/*
+/* disabled extra ec2 instances
 resource "aws_instance" "JonUbuntuEc2" {
   ami = "ami-0e872aee57663ae2d" # can be found in the ami catalogue "AMI Catalog" - Ubuntu Server 24.04 LTS
   instance_type = "t2.micro"
@@ -171,8 +194,7 @@ resource "aws_instance" "CountUbuntus" {
     info = "Einarbeitungsplayroom"
   }
 }
-*/
-
+*/ # disabled extra ec2 instances
 
 
 resource "aws_key_pair" "jonpubkey" {
@@ -180,22 +202,6 @@ resource "aws_key_pair" "jonpubkey" {
   public_key = file("${path.cwd}/id_ed25519.pub")
 }
 
-
-output "vpc_public_subnet_ids" {
-  # "vpc_public_subnet_ids" is literally just a name. We are just naming the label for easy identification
-  value = data.terraform_remote_state.AWSNetworkState.outputs.vpc_public_subnets
-  # The value is - DATASOURCE.datasourcestype.datasourcename.wewantanOUTput.theOutputwewant
-  # Datasource is "go query something, the information i need is tied up in the following container/element/resource/item declared
-}
-
-output "UbuntuIps" {
-  value = local.AutoUbuntusips
-
-}
-
-output "UbuntuDNSName" {
-  value = aws_route53_record.AutoUbuntusDNS.fqdn
-}
 
 /*
 #print into the console the public ip of statically created instance
@@ -209,10 +215,16 @@ output "Z_JonCountPubIP" {
 }
 */
 
-#print into the console the public ips of the servers created with for_each
-output "Z_JonForEachPubIP" {
-  value = {for k, server_Instance in aws_instance.AutoUbuntus : k => server_Instance.public_ip}
-  # for every instance, pull the information public_ip to k. print k
-  #value = aws_instance.AutoUbuntus.public_ip
+
+module "first_bucket" {
+  source        = "./s3bucket"
+  bucket_name   = "${local.kurz}-wichtiger-bucket"
+  force_destroy = true
 }
+
+module "second_bucket" {
+  source      = "./s3bucket"
+  bucket_name = "${local.kurz}-dump-bucket"
+}
+
 
