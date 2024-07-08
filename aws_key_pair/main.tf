@@ -5,5 +5,5 @@
 
 resource "aws_key_pair" "jonpubkey" {
   key_name   = var.jonpubkeyname
-  public_key = var.jobpubkeypath
+  public_key = var.jonpubkeypath
 }

@@ -3,3 +3,11 @@ resource "aws_s3_bucket" "todeploybucket" {
   force_destroy = var.force_destroy
 }
 
+/*
+resource "aws_s3_bucket_policy" "" {
+  bucket = var.bucket_name
+  policy = data.
+}
+
+*/
+

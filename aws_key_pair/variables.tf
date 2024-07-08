@@ -4,7 +4,7 @@ variable "jonpubkeyname" {
   default = "ConsistRechnerJonBaillie"
 }
 
-variable "jobpubkeypath" {
+variable "jonpubkeypath" {
   type = string
   description = "Path to public key"
   default = "DUMMY"

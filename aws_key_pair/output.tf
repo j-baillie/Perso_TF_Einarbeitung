@@ -3,5 +3,5 @@ output "jonpubkeyname" {
 }
 
 output "jobpubkeypath" {
-  value = var.jobpubkeypath
+  value = var.jonpubkeypath
 }

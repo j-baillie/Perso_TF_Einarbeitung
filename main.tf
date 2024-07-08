@@ -11,9 +11,29 @@ provider "aws" {
 
 data "aws_region" "current" {}
 
+data aws_iam_policy_document "ec2_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+data aws_iam_policy_document "s3_read_access" {
+  statement {
+    actions = ["s3:Get*", "s3:List*"]
+
+    resources = ["arn:aws:s3:::*"]
+  }
+}
+
 locals {
   awsRegion      = data.aws_region.current.name
   kurz           = "BJO"
+  kurzklein      = "bjo"
   PubKeyName     = "Public_key"
   AutoUbuntusips = [for serverInstance in aws_instance.AutoUbuntus : serverInstance.public_ip]
   # list of declaration of variables that we can re-use elsewhere for ease.
@@ -139,7 +159,8 @@ resource "aws_instance" "AutoUbuntus" {
   subnet_id                   = each.key
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.allowed_traffic.id]
-  key_name                    = local.PubKeyName
+  iam_instance_profile        = aws_iam_instance_profile.AutoUbuntuProfile.name
+  key_name = module.awskeydeploy.jonpubkeyname ##you can call specific arguments out of modules that have been loaded
   user_data                   = "${file("./install_apache.sh")}"
 
   tags = {
@@ -198,17 +219,12 @@ resource "aws_instance" "CountUbuntus" {
 }
 */ # disabled extra ec2 instances
 
-# TODO: move to module
-#resource "aws_key_pair" "jonpubkey" {
-#  key_name   = "consistrechnerjbENGERLAND"
-#  public_key = file("${path.cwd}/id_ed25519.pub")
-#}
 
 module "awskeydeploy" {
   # here i am loading the module.
-  # when calling, i want to overwrite this VARIABLE of the MODULE with this data
-  source = "./aws_key_pair"
-  jobpubkeypath = file("${path.cwd}/id_ed25519.pub")
+  # when calling, i want to overwrite the VARIABLE of the MODULE with this data
+  source        = "./aws_key_pair"
+  jonpubkeypath = file("${path.cwd}/id_ed25519.pub")
 }
 
 /*
@@ -226,13 +242,39 @@ output "Z_JonCountPubIP" {
 
 module "first_bucket" {
   source        = "./s3bucket"
-  bucket_name   = "${local.kurz}-wichtiger-bucket"
+  bucket_name   = "${local.kurzklein}-wichtiger-bucket"
   force_destroy = true
 }
 
 module "second_bucket" {
   source      = "./s3bucket"
-  bucket_name = "${local.kurz}-dump-bucket"
+  bucket_name = "${local.kurzklein}-dump-bucket"
 }
 
+resource "aws_s3_object" "indexphpobject" {
+  bucket     = module.first_bucket.bucketname
+  key        = "index.php"
+  source     = "./index.php"
+  depends_on = [
+    module.first_bucket
+  ]
+}
 
+resource "aws_iam_role" "AutoUbuntusRole" {
+  name               = "${local.kurzklein}-ubuntusrole"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
+  #policy is defined elsewhere in this file. Here we are just pulling it over for its implementation to the role
+}
+
+resource "aws_iam_role_policy" "join_policy" {
+  name       = "join_policy"
+  role       = aws_iam_role.AutoUbuntusRole.name
+  policy = data.aws_iam_policy_document.s3_read_access.json
+  #policy is defined elsewhere in this file. Here we are just pulling it over for its implementation to the role
+}
+
+resource "aws_iam_instance_profile" "AutoUbuntuProfile" {
+  name = "${local.kurzklein}-ec2InstanceProfile"
+  role = aws_iam_role.AutoUbuntusRole.name
+  #
+}

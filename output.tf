@@ -17,6 +17,15 @@ output "bucket1_force_destroy" {
   value = module.first_bucket.force_destroy
 }
 
+output "jonpubkeyname" {
+  value = module.awskeydeploy.jonpubkeyname
+}
+
+output "jonpubkeypath" {
+  value = module.awskeydeploy.jobpubkeypath
+}
+
+
 #print into the console the public ips of the servers created with for_each
 output "Z_JonForEachPubIP" {
   value = {for k, server_Instance in aws_instance.AutoUbuntus : k => server_Instance.public_ip}
@@ -38,4 +47,12 @@ output "UbuntuIps" {
 
 output "UbuntuDNSName" {
   value = aws_route53_record.AutoUbuntusDNS.fqdn
+}
+
+output "s3objectbucket" {
+  value = aws_s3_object.indexphpobject.bucket
+}
+
+output "s3objectfile" {
+  value = aws_s3_object.indexphpobject.key
 }
