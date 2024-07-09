@@ -9,26 +9,17 @@ provider "aws" {
 */
 }
 
+terraform {
+  backend "s3" {
+    bucket  = "dev-terraform-remote-state-wkltt9"
+    key     = "jon.state"
+    region = "eu-central-1"
+    //    dynamodb_table = "jon"
+    encrypt = true
+  }
+}
+
 data "aws_region" "current" {}
-
-data aws_iam_policy_document "ec2_assume_role" {
-  statement {
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-data aws_iam_policy_document "s3_read_access" {
-  statement {
-    actions = ["s3:Get*", "s3:List*"]
-
-    resources = ["arn:aws:s3:::*"]
-  }
-}
 
 locals {
   awsRegion      = data.aws_region.current.name
@@ -40,21 +31,29 @@ locals {
   # locals are variables that contain just one element
 }
 
+data aws_iam_policy_document "ec2_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+data aws_iam_policy_document "s3_read_access" {
+  statement {
+    actions   = ["s3:Get*", "s3:List*"]
+    resources = ["arn:aws:s3:::*"]
+  }
+  #using these data resources, we are able to GENERATE policy config documents with the actions/permissions on the resources we define
+}
+
 /*
 A Local. is only accessible within the local module vs a Terraform variable., which can be scoped globally.
 Another thing to note is that a local in Terraform doesn’t change its value once assigned. A variable value can be manipulated via expressions
 https://spacelift.io/blog/terraform-locals
 */
-
-terraform {
-  backend "s3" {
-    bucket  = "dev-terraform-remote-state-wkltt9"
-    key     = "jon.state"
-    region = "eu-central-1"
-    //    dynamodb_table = "jon"
-    encrypt = true
-  }
-}
 
 # variable in this case means an input variable - we are inputting a variable that contains many elements that can be referenced globally.
 variable "TerraformRemoteStateBucket" {
@@ -74,7 +73,6 @@ variable "AWSNetworkState" {
   description = "Name of the network state file / dynamo db table"
   default     = "network"
 }
-
 
 /*
 variable "public_subnet_ids" {
@@ -219,7 +217,6 @@ resource "aws_instance" "CountUbuntus" {
 }
 */ # disabled extra ec2 instances
 
-
 module "awskeydeploy" {
   # here i am loading the module.
   # when calling, i want to overwrite the VARIABLE of the MODULE with this data
@@ -239,10 +236,9 @@ output "Z_JonCountPubIP" {
 }
 */
 
-
 module "first_bucket" {
   source        = "./s3bucket"
-  bucket_name   = "${local.kurzklein}-wichtiger-bucket"
+  bucket_name   = "${local.kurzklein}-source-bucket"
   force_destroy = true
 }
 
@@ -267,8 +263,8 @@ resource "aws_iam_role" "AutoUbuntusRole" {
 }
 
 resource "aws_iam_role_policy" "join_policy" {
-  name       = "join_policy"
-  role       = aws_iam_role.AutoUbuntusRole.name
+  name   = "join_policy"
+  role   = aws_iam_role.AutoUbuntusRole.name
   policy = data.aws_iam_policy_document.s3_read_access.json
   #policy is defined elsewhere in this file. Here we are just pulling it over for its implementation to the role
 }

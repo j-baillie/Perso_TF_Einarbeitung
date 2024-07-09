@@ -42,11 +42,11 @@ output "vpc_public_subnet_ids" {
 
 output "UbuntuIps" {
   value = local.AutoUbuntusips
-
 }
 
 output "UbuntuDNSName" {
   value = aws_route53_record.AutoUbuntusDNS.fqdn
+  #what we want is part of a resource (created or to be created), the resource label is <> and the value we want is the fqdn
 }
 
 output "s3objectbucket" {
@@ -56,3 +56,4 @@ output "s3objectbucket" {
 output "s3objectfile" {
   value = aws_s3_object.indexphpobject.key
 }
+
