@@ -2,7 +2,7 @@
 hostname=$(hostname)
 TS=$(date +"%Y-%m-%d %H:%M:%S")
 echo $hostname
-sudo echo " $TS - entered user_data block" >> /home/ubuntu/userdata.proof
+sudo echo "$TS - entered user_data block" >> /home/ubuntu/userdata.proof
 sudo apt-get update
 sudo apt-get install -y apache2
 sudo snap install aws-cli --classic
