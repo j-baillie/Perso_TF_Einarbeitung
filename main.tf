@@ -30,7 +30,7 @@ locals {
   # list of declaration of variables that we can re-use elsewhere for ease.
   # locals are variables that contain just one element
 }
-
+/*
 data aws_iam_policy_document "ec2_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -48,6 +48,7 @@ data aws_iam_policy_document "s3_read_access" {
   }
   #using these data resources, we are able to GENERATE policy config documents with the actions/permissions on the resources we define
 }
+*/
 
 /*
 A Local. is only accessible within the local module vs a Terraform variable., which can be scoped globally.
@@ -56,7 +57,6 @@ https://spacelift.io/blog/terraform-locals
 */
 
 # variable in this case means an input variable - we are inputting a variable that contains many elements that can be referenced globally.
-
 
 /*
 variable "public_subnet_ids" {
@@ -240,6 +240,32 @@ resource "aws_s3_object" "indexphpobject" {
   ]
 }
 
+module "iam_policies_init" {
+  source = "./iam_policies_init"
+}
+
+resource "aws_iam_role" "AutoUbuntusRole" {
+  name               = "bjo-ubuntusrole"
+  #assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
+  assume_role_policy = module.iam_policies_init.ec2_assume_role.json
+  #policy is defined elsewhere. Here we are pulling the json policy information created in the module over
+}
+
+resource "aws_iam_role_policy" "join_policy" {
+  name   = "join_policy"
+  role   = aws_iam_role.AutoUbuntusRole.name
+  #policy = data.aws_iam_policy_document.s3_read_access.json
+  policy = module.iam_policies_init.s3_read_acess.json
+  #policy is defined elsewhere. Here we are pulling the json policy information created in the module over
+}
+
+resource "aws_iam_instance_profile" "AutoUbuntuProfile" {
+  name = "bjo-ec2InstanceProfile"
+  role = aws_iam_role.AutoUbuntusRole.name
+  #
+}
+
+/*
 resource "aws_iam_role" "AutoUbuntusRole" {
   name               = "${local.kurzklein}-ubuntusrole"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -258,3 +284,4 @@ resource "aws_iam_instance_profile" "AutoUbuntuProfile" {
   role = aws_iam_role.AutoUbuntusRole.name
   #
 }
+*/
