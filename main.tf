@@ -129,6 +129,16 @@ resource "aws_route53_record" "AutoUbuntusDNS" {
   #records = {for k, instance in aws_instance.AutoUbuntus : k => instance.public_ip} # returns a map
 }
 
+resource "aws_route53_record" "privnetfARecord" {
+  depends_on = [aws_route53_record.AutoUbuntusDNS]
+  name    = "privnetf"
+  type    = "CNAME"
+  zone_id = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
+  ttl     = 30
+  records = [aws_route53_record.AutoUbuntusDNS.fqdn] # equates to "Value/Route traffic to" in the AWS Panel
+  #records can also be a list - denoted by []
+}
+
 /* disabled extra ec2 instances
 resource "aws_instance" "JonUbuntuEc2" {
   ami = "ami-0e872aee57663ae2d" # can be found in the ami catalogue "AMI Catalog" - Ubuntu Server 24.04 LTS
@@ -167,7 +177,7 @@ resource "aws_instance" "CountUbuntus" {
 */ # disabled extra ec2 instances
 
 module "awskeydeploy" {
-  # here i am loading the module.
+  # here i am loading the module. The phrase between the "" is purely a label
   # when calling, i want to overwrite the VARIABLE of the MODULE with this data - NOT the ARGUMENT of the RESOURCE invocation
   source        = "./aws_key_pair"
   jonpubkeypath = file("${path.cwd}/id_ed25519.pub")
@@ -199,17 +209,15 @@ module "iam_policies_init" {
 
 resource "aws_iam_role" "AutoUbuntusRole" {
   name = "bjo-ubuntusrole"
-  #assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
   assume_role_policy = module.iam_policies_init.ec2_assume_role.json
-  #policy is defined elsewhere. Here we are pulling the json policy information created in the module over
+  #policy is defined elsewhere. Here we are pulling the policy json information created in the module over
 }
 
 resource "aws_iam_role_policy" "join_policy" {
   name   = "join_policy"
   role = aws_iam_role.AutoUbuntusRole.name
-  #policy = data.aws_iam_policy_document.s3_read_access.json
   policy = module.iam_policies_init.s3_read_acess.json
-  #policy is defined elsewhere. Here we are pulling the json policy information created in the module over
+  #policy is defined elsewhere. Here we are pulling the policy json information created in the module over
 }
 
 resource "aws_iam_instance_profile" "AutoUbuntuProfile" {
