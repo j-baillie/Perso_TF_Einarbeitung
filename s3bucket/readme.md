@@ -5,7 +5,9 @@ No requirements.
 
 ## Providers
 
-No providers.
+| Name | Version |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | n/a |
 
 ## Modules
 
@@ -13,22 +15,21 @@ No modules.
 
 ## Resources
 
-No resources.
+| Name | Type |
+|------|------|
+| [aws_s3_bucket.todeploybucket](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_Num1"></a> [Num1](#input\_Num1) | n/a | `number` | `1` | no |
-| <a name="input_Num2"></a> [Num2](#input\_Num2) | n/a | `number` | `1` | no |
-| <a name="input_Rtz"></a> [Rtz](#input\_Rtz) | just another variable living elsewhere | `string` | `"2ez4rtz"` | no |
-| <a name="input_blah"></a> [blah](#input\_blah) | this is a blah string variable | `string` | `"blinkblonk"` | no |
+| <a name="input_bucket_name"></a> [bucket\_name](#input\_bucket\_name) | the bucketname | `string` | `"consist-jon-default"` | no |
+| <a name="input_force_destroy"></a> [force\_destroy](#input\_force\_destroy) | (Optional, Default:false) Boolean that indicates all objects (including any locked objects) should be deleted from the bucket when the bucket is destroyed so that the bucket can be destroyed without error. These objects are not recoverable. This only deletes objects when the bucket is destroyed, not when setting this parameter to true. Once this parameter is set to true, there must be a successful | `bool` | `false` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_result"></a> [result](#output\_result) | n/a |
-| <a name="output_spit_back_Rtz"></a> [spit\_back\_Rtz](#output\_spit\_back\_Rtz) | n/a |
-| <a name="output_spit_back_blah"></a> [spit\_back\_blah](#output\_spit\_back\_blah) | n/a |
+| <a name="output_bucketname"></a> [bucketname](#output\_bucketname) | n/a |
+| <a name="output_force_destroy"></a> [force\_destroy](#output\_force\_destroy) | n/a |
 <!-- END_TF_DOCS -->
