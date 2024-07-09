@@ -57,3 +57,14 @@ output "s3objectfile" {
   value = aws_s3_object.indexphpobject.key
 }
 
+output "TerraformRemoteStateBucket" {
+  value = var.TerraformRemoteStateBucket
+}
+
+output "AWSAccountSetupState" {
+  value = var.AWSAccountSetupState
+}
+
+output "AWSNetworkState" {
+  value = var.AWSNetworkState
+}
