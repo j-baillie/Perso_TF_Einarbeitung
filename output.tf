@@ -68,3 +68,8 @@ output "AWSAccountSetupState" {
 output "AWSNetworkState" {
   value = var.AWSNetworkState
 }
+
+output "StringManip" {
+  value = join(", ", var.repository_name_list) # using this join( module with the used syntax we can manipulate a string list to a simple string
+
+}

@@ -131,11 +131,11 @@ resource "aws_route53_record" "AutoUbuntusDNS" {
 
 resource "aws_route53_record" "privnetfARecord" {
   depends_on = [aws_route53_record.AutoUbuntusDNS]
-  name    = "privnetf"
-  type    = "CNAME"
-  zone_id = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
-  ttl     = 30
-  records = [aws_route53_record.AutoUbuntusDNS.fqdn] # equates to "Value/Route traffic to" in the AWS Panel
+  name       = "privnetf"
+  type       = "CNAME"
+  zone_id    = data.terraform_remote_state.AWSAccountSetup.outputs.route53dnsZoneID
+  ttl        = 30
+  records    = [aws_route53_record.AutoUbuntusDNS.fqdn] # equates to "Value/Route traffic to" in the AWS Panel
   #records can also be a list - denoted by []
 }
 
@@ -208,14 +208,14 @@ module "iam_policies_init" {
 }
 
 resource "aws_iam_role" "AutoUbuntusRole" {
-  name = "bjo-ubuntusrole"
+  name               = "bjo-ubuntusrole"
   assume_role_policy = module.iam_policies_init.ec2_assume_role.json
   #policy is defined elsewhere. Here we are pulling the policy json information created in the module over
 }
 
 resource "aws_iam_role_policy" "join_policy" {
   name   = "join_policy"
-  role = aws_iam_role.AutoUbuntusRole.name
+  role   = aws_iam_role.AutoUbuntusRole.name
   policy = module.iam_policies_init.s3_read_acess.json
   #policy is defined elsewhere. Here we are pulling the policy json information created in the module over
 }
@@ -225,3 +225,7 @@ resource "aws_iam_instance_profile" "AutoUbuntuProfile" {
   role = aws_iam_role.AutoUbuntusRole.name
   #
 }
+
+
+
+
